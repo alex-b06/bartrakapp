@@ -1,14 +1,13 @@
+import * as Device from 'expo-device';
+import { Platform, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { AnimatedIcon } from '@/components/animated-icon';
 import { HintRow } from '@/components/hint-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { WebBadge } from '@/components/web-badge';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
-import * as Device from 'expo-device';
-import { Image } from 'expo-image';
-import { SymbolView } from 'expo-symbols';
-import { Platform, Pressable, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 function getDevMenuHint() {
   if (Platform.OS === 'web') {
@@ -30,27 +29,13 @@ function getDevMenuHint() {
 }
 
 export default function HomeScreen() {
-  const theme = useTheme();
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-
-        <ThemedView style={styles.topBar}>
-          <Image source={require('@/assets/images/logo.png')} style={{width: 100, height: 100}}/>
-          <Pressable style={({ pressed }) => pressed && styles.pressed}>
-                        <ThemedView type="backgroundElement" style={styles.linkButton}>
-                          <ThemedText type="link">Expo documentation</ThemedText>
-                          <SymbolView
-                            tintColor={theme.text}
-                            name={{ ios: 'arrow.up.right.square', android: 'link', web: 'link' }}
-                            size={12}
-                          />
-                        </ThemedView>
-                      </Pressable>
-        </ThemedView>
         <ThemedView style={styles.heroSection}>
+          <AnimatedIcon />
           <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;BarTrak
+            Welcome to&nbsp;Expo
           </ThemedText>
         </ThemedView>
 
@@ -77,26 +62,6 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  topBar: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    gap: 12,
-    paddingTop: Spacing.one,
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-  linkButton: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
-    borderRadius: Spacing.five,
-    justifyContent: 'center',
-    gap: Spacing.one,
-    alignItems: 'center',
-  },
   container: {
     flex: 1,
     justifyContent: 'center',

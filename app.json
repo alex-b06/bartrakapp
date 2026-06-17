@@ -34,7 +34,16 @@
             "imageWidth": 76
           }
         }
-      ]
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow BarTrak to access your camera for workout recording.",
+          "microphonePermission": "Allow BarTrak to access your microphone while recording workout videos.",
+          "recordAudioAndroid": true
+        }
+      ],
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true,

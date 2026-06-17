@@ -1,98 +1,170 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
+import { router, type Href } from 'expo-router';
+import { useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
+import { EmptyState } from '@/components/EmptyState';
+import { SearchBar } from '@/components/SearchBar';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
+import { WorkoutCard } from '@/components/WorkoutCard';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { useWorkout } from '@/context/workout-context';
+import { useTheme } from '@/hooks/use-theme';
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
+type SortOption = 'newest' | 'oldest';
+
+export default function HistoryScreen() {
+  const theme = useTheme();
+  const { deleteWorkout, workouts } = useWorkout();
+  const [query, setQuery] = useState('');
+  const [sortOption, setSortOption] = useState<SortOption>('newest');
+
+  const filteredWorkouts = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    return workouts
+      .filter(workout => {
+        if (!normalizedQuery) {
+          return true;
+        }
+
+        return (
+          workout.exerciseType.toLowerCase().includes(normalizedQuery) ||
+          workout.date.toLowerCase().includes(normalizedQuery)
+        );
+      })
+      .sort((a, b) => {
+        const difference = b.createdAt.getTime() - a.createdAt.getTime();
+        return sortOption === 'newest' ? difference : -difference;
+      });
+  }, [query, sortOption, workouts]);
+
   return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <ThemedText style={styles.title}>Workout History</ThemedText>
+            <ThemedText themeColor="textSecondary">
+              Review recorded sets and placeholder analysis as the ML pipeline comes online.
+            </ThemedText>
+          </View>
+
+          <SearchBar
+            onChangeText={setQuery}
+            placeholder="Search by exercise or date"
+            value={query}
+          />
+
+          <View style={styles.sortRow}>
+            <SortButton
+              active={sortOption === 'newest'}
+              label="Newest First"
+              onPress={() => setSortOption('newest')}
+            />
+            <SortButton
+              active={sortOption === 'oldest'}
+              label="Oldest First"
+              onPress={() => setSortOption('oldest')}
+            />
+          </View>
+
+          {workouts.length === 0 ? (
+            <EmptyState
+              actionLabel="Record Your First Workout"
+              message="No workouts recorded yet. Start with one set and BarTrak will save it here."
+              onActionPress={() => router.push('/camera' as Href)}
+              title="No workouts recorded yet."
+            />
+          ) : filteredWorkouts.length === 0 ? (
+            <EmptyState
+              message="Try a different exercise name or date."
+              title="No matching workouts"
+              icon="magnifyingglass"
+            />
+          ) : (
+            <View style={styles.list}>
+              {filteredWorkouts.map(workout => (
+                <WorkoutCard key={workout.id} onDelete={deleteWorkout} workout={workout} />
+              ))}
+            </View>
+          )}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
-export default function HomeScreen() {
+function SortButton({
+  active,
+  label,
+  onPress,
+}: {
+  active: boolean;
+  label: string;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
-
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
-
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.sortButton,
+        { backgroundColor: active ? '#22C55E' : theme.backgroundElement },
+        pressed && styles.pressed,
+      ]}>
+      <ThemedText style={[styles.sortLabel, active && styles.activeSortLabel]}>{label}</ThemedText>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
   safeArea: {
     flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
   },
-  heroSection: {
+  content: {
     alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
+    paddingBottom: BottomTabInset + Spacing.four,
+  },
+  container: {
+    gap: Spacing.three,
+    maxWidth: MaxContentWidth,
+    padding: Spacing.four,
+    width: '100%',
+  },
+  header: {
+    gap: Spacing.two,
   },
   title: {
-    textAlign: 'center',
+    fontSize: 34,
+    fontWeight: '900',
+    lineHeight: 40,
   },
-  code: {
-    textTransform: 'uppercase',
+  sortRow: {
+    flexDirection: 'row',
+    gap: Spacing.two,
   },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
+  sortButton: {
+    alignItems: 'center',
+    borderRadius: 8,
+    flex: 1,
+    minHeight: 44,
+    justifyContent: 'center',
     paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+  },
+  sortLabel: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  activeSortLabel: {
+    color: '#06130A',
+  },
+  list: {
+    gap: Spacing.three,
+  },
+  pressed: {
+    opacity: 0.78,
   },
 });
